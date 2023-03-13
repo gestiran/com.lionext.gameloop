@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEngine.LowLevel;
 
 namespace Lionext.GameLoop.Handles {
@@ -17,57 +18,43 @@ namespace Lionext.GameLoop.Handles {
             _systems = _currentLoop.subSystemList.ToList();
         }
 
-        public void AddLoop(PlayerLoopSystem system) {
+        public bool TryAddLoop(PlayerLoopSystem system) {
             _systems.Add(system);
             ApplyLoop();
+            return true;
         }
 
-        public void AddLoop<LoopType>(PlayerLoopSystem system) {
+        public bool TryAddLoop<LoopType>(PlayerLoopSystem system) {
             Type loopType = typeof(LoopType);
             
             for (int systemId = 0; systemId < _systems.Count; systemId++) {
                 if (_systems[systemId].type != loopType) continue;
-                
-                _systems.Insert(systemId, system);
-                return;
-            }
 
-            AddLoop(system);
-            ApplyLoop();
-        }
-        
-        public void AddLoop<LoopType, SubSystemType>(PlayerLoopSystem system) {
-            Type loopType = typeof(LoopType);
-            Type subSystemType = typeof(SubSystemType);
-            
-            for (int systemId = 0; systemId < _systems.Count; systemId++) {
-                if (_systems[systemId].type != loopType) continue;
-                if (_systems[systemId].subSystemList == null) break;
+                PlayerLoopSystem loop = _systems[systemId];
 
-                PlayerLoopSystem root = _systems[systemId];
-                List<PlayerLoopSystem> subSystems = root.subSystemList.ToList();
-                
-                for (int subSystemId = 0; subSystemId < subSystems.Count; subSystemId++) {
-                    if (_systems[systemId].type != subSystemType) continue;
-                    
-                    subSystems.Insert(subSystemId, system);
-                    root.subSystemList = subSystems.ToArray();
-                    _systems[systemId] = root;
-                    return;
+                if (loop.subSystemList == null) loop.subSystemList = new[] { system };
+                else {
+                    List<PlayerLoopSystem> subSystems = loop.subSystemList.ToList();
+                    subSystems.Add(system);
+                    loop.subSystemList = subSystems.ToArray();
                 }
-            }
 
-            AddLoop(system);
-            ApplyLoop();
+                _systems[systemId] = loop;
+                ApplyLoop();
+                return true;
+            }
+            
+            return false;
         }
 
-        public void RemoveLoop(PlayerLoopSystem system) {
+        public bool TryRemoveLoop(PlayerLoopSystem system) {
             _systems.Remove(system);
             ApplyLoop();
+            return true;
         }
 
-        public void RemoveLoop<SubSystemType>(PlayerLoopSystem system) {
-            Type loopType = typeof(SubSystemType);
+        public bool TryRemoveLoop<LoopType>(PlayerLoopSystem system) {
+            Type loopType = typeof(LoopType);
             
             for (int systemId = 0; systemId < _systems.Count; systemId++) {
                 if (_systems[systemId].type != loopType) continue;
@@ -79,7 +66,10 @@ namespace Lionext.GameLoop.Handles {
                 root.subSystemList = subSystems.ToArray();
                 _systems[systemId] = root;
                 ApplyLoop();
+                return true;
             }
+
+            return false;
         }
 
         public bool TryConnectToLoop<LoopType>(Action update) {
@@ -93,29 +83,6 @@ namespace Lionext.GameLoop.Handles {
                 _systems[systemId] = root;
                 ApplyLoop();
                 return true;
-            }
-
-            return false;
-        }
-        
-        public bool TryConnectToLoop<LoopType, SubSystemType>(Action update) {
-            Type loopType = typeof(LoopType);
-            Type subSystemType = typeof(SubSystemType);
-            
-            for (int systemId = 0; systemId < _systems.Count; systemId++) {
-                if (_systems[systemId].type != loopType) continue;
-                if (_systems[systemId].subSystemList == null) return false;
-
-                PlayerLoopSystem root = _systems[systemId];
-
-                for (int subSystemId = 0; subSystemId < root.subSystemList.Length; subSystemId++) {
-                    if (_systems[systemId].type != subSystemType) continue;
-                    
-                    root.subSystemList[subSystemId].updateDelegate += update.Invoke;
-                    _systems[systemId] = root;
-                    ApplyLoop();
-                    return true;
-                }
             }
 
             return false;
@@ -137,34 +104,39 @@ namespace Lionext.GameLoop.Handles {
             return false;
         }
         
-        public bool TryDisconnectFromLoop<LoopType, SubSystemType>(Action update) {
-            Type loopType = typeof(LoopType);
-            Type subSystemType = typeof(SubSystemType);
-            
-            for (int systemId = 0; systemId < _systems.Count; systemId++) {
-                if (_systems[systemId].type != loopType) continue;
-                if (_systems[systemId].subSystemList == null) return false;
-
-                PlayerLoopSystem root = _systems[systemId];
-
-                for (int subSystemId = 0; subSystemId < root.subSystemList.Length; subSystemId++) {
-                    if (_systems[systemId].type != subSystemType) continue;
-                    
-                    root.subSystemList[subSystemId].updateDelegate -= update.Invoke;
-                    _systems[systemId] = root;
-                    ApplyLoop();
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        
         public void SetDefaultLoop() => PlayerLoop.SetPlayerLoop(_defaultLoop);
 
         private void ApplyLoop() {
             _currentLoop.subSystemList = _systems.ToArray();
             PlayerLoop.SetPlayerLoop(_currentLoop);
+        }
+
+        public override string ToString() {
+            StringBuilder result = new StringBuilder(_systems.Count);
+
+            const int namespaceOffset = 23;
+            
+            for (int systemId = 0; systemId < _systems.Count; systemId++) {
+                result.Append($"{systemId:00}");
+
+                string typeText = _systems[systemId].type.ToString();
+                if (typeText.Contains("UnityEngine")) typeText = typeText.Substring(namespaceOffset);
+
+                result.AppendLine($" - {typeText}");
+                
+                if (_systems[systemId].subSystemList == null) continue;
+                
+                for (int subSystemId = 0; subSystemId < _systems[systemId].subSystemList.Length; subSystemId++) {
+                    result.Append($"{systemId:00}:{subSystemId:00}");
+
+                    typeText = _systems[systemId].subSystemList[subSystemId].type.ToString();
+                    if (typeText.Contains("UnityEngine")) typeText = typeText.Substring(namespaceOffset);
+                    
+                    result.AppendLine($" - {typeText}");
+                }
+            }
+            
+            return result.ToString();
         }
     }
 }

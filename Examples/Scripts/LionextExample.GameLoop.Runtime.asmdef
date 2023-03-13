@@ -1,0 +1,22 @@
+{
+    "name": "LionextExample.GameLoop.Runtime",
+    "rootNamespace": "LionextExample.GameLoop",
+    "references": [
+        "GUID:26f0d08bd0839234d8f5ebba545fbc11"
+    ],
+    "includePlatforms": [
+        "Android",
+        "Editor",
+        "iOS",
+        "WindowsStandalone32",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
