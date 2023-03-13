@@ -1,0 +1,17 @@
+{
+  "name": "com.lionext.gameloop",
+  "displayName": "Game Loop Utility",
+  "description": "Optimized using player loop",
+  "version": "0.1.1",
+  "unity": "2021.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gestiran/com.lionext.gameloop"
+  },
+  "author": {
+    "name": "Derek Sliman",
+    "email": "lionext.studio@gmail.com",
+    "url": "https://github.com/gestiran"
+  },
+  "license": "MIT"
+}
